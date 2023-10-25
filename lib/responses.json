@@ -1,0 +1,28 @@
+{
+    "error": false,
+    "message": "user created"
+}
+
+{
+    "result": {
+        "error": false,
+        "message": "ECWR4XFQPTUDL3ZDPORHRS74GQ"
+    },
+    "user": {
+        "email": "samatabzalovich@gmail.com",
+        "userName": "190704Samat",
+        "type": "rider ",
+        "id": 1
+    }
+}
+
+{
+    "error": false,
+    "exist": true,
+    "user": {
+        "email": "samatabzalovich@gmail.com",
+        "userName": "190704Samat",
+        "type": "rider ",
+        "id": 1
+    }
+}
