@@ -8,6 +8,8 @@ import 'package:flutter_delivery/features/auth/presentation/bloc/auth_state.dart
 import 'package:flutter_delivery/features/auth/presentation/pages/auth_sign_in.dart';
 import 'package:flutter_delivery/features/auth/presentation/pages/auth_sign_up.dart';
 import 'package:flutter_delivery/features/auth/presentation/widgets/generic_dialog.dart';
+import 'package:flutter_delivery/features/driver_app/presentation/bloc/delivery_bloc.dart';
+import 'package:flutter_delivery/features/driver_app/presentation/pages/delivery_page.dart';
 
 Route<dynamic> onGenerateRoutes(RouteSettings settings) {
   switch (settings.name) {
@@ -32,7 +34,10 @@ Route<dynamic> onGenerateRoutes(RouteSettings settings) {
           }
         }, builder: (_, state) {
           if (state is AuthLoggedInState) {
-            return Scaffold(body: Center(child: Text("Logged in")));
+            return BlocProvider<DeliveryBloc>(
+                create: (context) => sl<DeliveryBloc>()..add(const DeliveryInitEvent()),
+                child:  const DeliveryPage(),
+              );
           }
           return AuthSignIn();
         });
@@ -45,10 +50,13 @@ Route<dynamic> onGenerateRoutes(RouteSettings settings) {
                 child: RegisterPage(),
               ),
           settings: settings);
-
-    // case '/SavedArticles':
-    //   return _materialRoute(const SavedArticles());
-
+    case DeliveryPage.routeName:
+      return _pageBuilder(
+          (context) => BlocProvider<DeliveryBloc>(
+                create: (context) => sl()..add(const DeliveryInitEvent()),
+                child: const DeliveryPage(),
+              ),
+          settings: settings);
     default:
       return _pageBuilder((context) {
         return const Center(

@@ -197,7 +197,7 @@ class _MapScreenState extends State<MapSample> {
       setState(() {
         _currentPosition = LatLng(event.latitude, event.longitude);
         _initialcameraposition =
-            LatLng(_currentPosition.latitude, _currentPosition.longitude!);
+            LatLng(_currentPosition.latitude, _currentPosition.longitude);
 
         //         MarkerId markerId = MarkerId(indicatorID);
         // Marker marker =

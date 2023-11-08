@@ -1,6 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:flutter_delivery/core/resources/data_state.dart';
 import 'package:flutter_delivery/features/driver_app/data/data_source/emit_to_socket/socket_api.dart';
-import 'package:flutter_delivery/features/driver_app/data/data_source/stream/socket_error.dart';
+import 'package:flutter_delivery/features/driver_app/data/data_source/remote/google_maps_api.dart';
+import 'package:flutter_delivery/features/driver_app/data/data_source/stream/socket_message.dart';
 import 'package:flutter_delivery/features/driver_app/data/data_source/stream/socket_stream_api.dart';
 import 'package:flutter_delivery/features/driver_app/data/models/order_model.dart';
 import 'package:flutter_delivery/features/driver_app/domain/entities/order_entity.dart';
@@ -10,11 +12,13 @@ import 'package:flutter_delivery/features/driver_app/domain/usecase/get_polyline
 class DriverRepositoryImpl implements DriverRepository {
   final SocketApiService _socketApiService;
   final SocketStreamApiService _streamSocketApi;
-  final SocketServiceError _streamErrorApi;
+  final SocketServiceMessage _streamErrorApi;
+  final GoogleMapsApiService _googleMapsApiService;
   DriverRepositoryImpl(
     this._socketApiService,
     this._streamSocketApi,
     this._streamErrorApi,
+    this._googleMapsApiService,
   );
 
   @override
@@ -23,8 +27,8 @@ class DriverRepositoryImpl implements DriverRepository {
   }
 
   @override
-  Future<void> completeOrder(OrderEntity entity) async {
-    _socketApiService.completeOrder(OrderModel.fromEntity(entity));
+  Future<void> completeOrder(String code) async {
+    _socketApiService.completeOrder(code);
   }
 
   @override
@@ -58,24 +62,28 @@ class DriverRepositoryImpl implements DriverRepository {
   }
 
   @override
-  Stream<String> serverErrorResponse() {
-    return _streamErrorApi.serverErrorResponse();
+  Stream<String> serverMessageResponse() {
+    return _streamErrorApi.serverMessageResponse();
   }
 
   @override
   void closeErrorStream() {
-        _streamErrorApi.close();
-
+    _streamErrorApi.close();
   }
 
   @override
   void closeRequestStream() {
-        _streamSocketApi.close();
+    _streamSocketApi.close();
   }
 
   @override
-  Future<PolylineUseCaseResult> getPolyline(PolylineUseCaseParams location) {
-    // TODO: implement getPolyline
-    throw UnimplementedError();
+  Future<DataState<PolylineUseCaseResult>> getPolyline(
+      PolylineUseCaseParams location) async {
+    return await _googleMapsApiService.getPolyLine(location);
+  }
+
+  @override
+  Future<void> offLine() async {
+    _socketApiService.offLine();
   }
 }

@@ -44,8 +44,9 @@ dependencies:
   dio: ^5.3.3
   get_it: ^7.6.4
   shared_preferences: ^2.2.2
-  socket_io_client: ^2.0.3+1
   geolocator: ^10.1.0
+  socket_io_client: ^2.0.3+1
+  intl: ^0.18.1
 
 dev_dependencies:
   flutter_test:

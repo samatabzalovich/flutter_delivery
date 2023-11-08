@@ -1,7 +1,9 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
 import 'package:equatable/equatable.dart';
+
 import 'package:flutter_delivery/core/enum/user_enums.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class OrderEntity extends Equatable {
   final int? id;
@@ -13,8 +15,9 @@ class OrderEntity extends Equatable {
   final String destinationAddress;
   final String originAddress;
   final int? deliveryId;
+  final String? finishCode;
   final int customerId;
-  final DeliveryState deliveryState;
+  final OrderState deliveryState;
   final int? version;
   const OrderEntity({
     required this.id,
@@ -26,6 +29,7 @@ class OrderEntity extends Equatable {
     required this.destinationAddress,
     required this.originAddress,
     required this.deliveryId,
+    required this.finishCode,
     required this.customerId,
     required this.deliveryState,
     required this.version,
@@ -46,8 +50,52 @@ class OrderEntity extends Equatable {
         deliveryState,
         version,
       ];
-
-
+  factory OrderEntity.empty() => const OrderEntity(
+      id: null,
+      createdAt: null,
+      updatedAt: null,
+      isCompleted: true,
+      destination:  LocationEntity(latitude: 0, longitude: 0),
+      origin:   LocationEntity(latitude: 0, longitude: 0),
+      destinationAddress: '',
+      originAddress: '',
+      deliveryId: null,
+      finishCode: null,
+      customerId: 0,
+      deliveryState: OrderState.none,
+      version: 0,
+      );
+  OrderEntity copyWith({
+    int? id,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isCompleted,
+    LocationEntity? destination,
+    LocationEntity? origin,
+    String? destinationAddress,
+    String? originAddress,
+    int? deliveryId,
+    String? finishCode,
+    int? customerId,
+    OrderState? deliveryState,
+    int? version,
+  }) {
+    return OrderEntity(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isCompleted: isCompleted ?? this.isCompleted,
+      destination: destination ?? this.destination,
+      origin: origin ?? this.origin,
+      destinationAddress: destinationAddress ?? this.destinationAddress,
+      originAddress: originAddress ?? this.originAddress,
+      deliveryId: deliveryId ?? this.deliveryId,
+      finishCode: finishCode ?? this.finishCode,
+      customerId: customerId ?? this.customerId,
+      deliveryState: deliveryState ?? this.deliveryState,
+      version: version ?? this.version,
+    );
+  }
 }
 
 class LocationEntity extends Equatable {

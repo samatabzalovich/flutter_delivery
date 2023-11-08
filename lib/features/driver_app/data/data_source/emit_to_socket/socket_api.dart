@@ -9,6 +9,7 @@ abstract class SocketApiService {
   Future<void> onLine(DeliveryUseCaseParams locationData);
   Future<void> acceptOrder(OrderModel entity);
   Future<void> pickOrder(OrderModel entity);
-  Future<void> completeOrder(OrderModel entity);
+  Future<void> completeOrder(String code);
+  Future<void> offLine();
   Future<void> disconnect();
 }

@@ -8,8 +8,6 @@ import 'package:flutter_delivery/features/driver_app/domain/repository/driver_re
 
 class SocketApiServiceImpl implements SocketApiService {
   final SocketService _socketService;
-  final StreamController<OrderModel> orderStreamController = StreamController();
-  // TODO: implement dispose method for orderStreamController
   SocketApiServiceImpl(this._socketService);
 
   @override
@@ -25,8 +23,8 @@ class SocketApiServiceImpl implements SocketApiService {
   }
 
   @override
-  Future<void> completeOrder(OrderModel entity) async {
-    _socketService.emitEvent("completeOrder", entity.toMap());
+  Future<void> completeOrder(String code) async {
+    _socketService.emitEvent("completeOrder", code);
   }
 
   @override
@@ -47,6 +45,11 @@ class SocketApiServiceImpl implements SocketApiService {
   @override
   Future<void> sendLocation(DeliveryUseCaseParams locationData) async {
     _socketService.emitEvent("deliveryLocation", locationData.toMap());
+  }
+  
+  @override
+  Future<void> offLine() async {
+    _socketService.emitEvent("offLine", "offline user");
   }
 }
 

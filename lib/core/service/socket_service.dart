@@ -1,4 +1,6 @@
 // ignore: library_prefixes
+import 'dart:async';
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class SocketService {
@@ -9,9 +11,14 @@ class SocketService {
   void initializeSocket(String token) {
     _socket = IO.io(
         _serverUrl,
-        IO.OptionBuilder().setTransports(['websocket']).setExtraHeaders(
-            {"Authorization": token}).build());
+        IO.OptionBuilder()
+            .setTransports(['websocket'])
+            .setExtraHeaders({"token": token})
+            .disableAutoConnect()
+            .enableReconnection()
+            .build());
     _socket.connect();
+    
   }
 
   void emitEvent(String event, dynamic data) {

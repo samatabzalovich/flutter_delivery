@@ -67,7 +67,7 @@ class AuthApiServiceImpl implements AuthApiService {
     try {
       Map<String, dynamic> body = {
         "action": "auth",
-        "token": {"bearer": "SXYJWYXAC42QVR235UMNA26TLU"}
+        "token": {"bearer": token}
       };
 
       final response = await _dio.post(_baseUrl, data: body);

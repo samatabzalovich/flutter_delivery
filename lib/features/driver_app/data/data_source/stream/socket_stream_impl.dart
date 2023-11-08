@@ -12,10 +12,12 @@ class SocketStreamApiServiceImpl implements SocketStreamApiService {
 
   @override
   Stream<OrderModel> streamOrder() {
-    // Listen to the 'order' event from the server
-    _socketService.listenToEvent('order', (data) {
-      final order = OrderModel.fromMap(data);
-      orderStreamController.add(order);
+    _socketService.listenToEvent('order-event', (data) {
+      Map orderMap = data;
+      if(orderMap.isNotEmpty) {
+        final order = OrderModel.fromMap(data);
+        orderStreamController.sink.add(order);
+      }
     });
     return orderStreamController.stream;
   }

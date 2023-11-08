@@ -5,7 +5,6 @@ import 'package:flutter_delivery/core/local/shared_preference.dart';
 import 'package:flutter_delivery/core/service/dependencies_injector.dart';
 import 'package:flutter_delivery/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_delivery/features/auth/presentation/bloc/auth_event.dart';
-import 'package:flutter_delivery/features/driver_app/presentation/pages/map_sample.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,16 +18,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // return BlocProvider<AuthBloc>(
-    //   create: (context) => sl()..add(const AuthCheckTokenEvent()),
-    //   child: const  MaterialApp(
-    //     debugShowCheckedModeBanner: false,
-    //     onGenerateRoute: onGenerateRoutes,
-    //   ),
-    // );
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: MapSample(),
+    return BlocProvider<AuthBloc>(
+      create: (context) => sl<AuthBloc>()..add(const AuthCheckTokenEvent()),
+      child: const  MaterialApp(
+        debugShowCheckedModeBanner: false,
+        onGenerateRoute: onGenerateRoutes,
+      ),
     );
+    // return const MaterialApp(
+    //   debugShowCheckedModeBanner: false,
+    //   home: MapSample(),
+    // );
   }
 }

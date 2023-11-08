@@ -16,6 +16,7 @@ class OrderModel extends OrderEntity {
     required super.customerId,
     required super.deliveryState,
     required super.version,
+    required super.finishCode
   });
 
   Map<String, dynamic> toMap() {
@@ -30,7 +31,7 @@ class OrderModel extends OrderEntity {
       'originAddress': originAddress,
       'deliveryId': deliveryId,
       'customerId': customerId,
-      'deliveryState': deliveryState,
+      'deliveryState': deliveryState.name,
       'version': version,
     };
   }
@@ -38,17 +39,18 @@ class OrderModel extends OrderEntity {
   factory OrderModel.fromMap(Map<String, dynamic> map) {
     return OrderModel(
       id: map['id'] ?? 0 ,
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      updatedAt: DateTime.fromMillisecondsSinceEpoch(map['updatedAt'] ?? 0),
-      isCompleted: map['isCompleted'] as bool,
+      createdAt: DateTime.parse(map['createdAt'] ),
+      updatedAt: DateTime.parse(map['updatedAt'] ),
+      isCompleted: map['isCompleted'] ?? false,
       destination: LocationEntity.fromMap(map['destination'] as Map<String,dynamic>),
       origin: LocationEntity.fromMap(map['origin'] as Map<String,dynamic>),
       destinationAddress: map['destinationAddress'] as String,
       originAddress: map['originAddress'] as String,
       deliveryId: map['deliveryId'],
       customerId: map['customerId'] as int,
-      deliveryState: DeliveryState.searching.getValueFromString(map['deliveryState']),
+      deliveryState: OrderState.searching.getValueFromString(map['deliveryState']),
       version: map['version'] ?? 0,
+      finishCode: map['finishCode'] ?? ''
     );
   }
 
@@ -67,6 +69,7 @@ class OrderModel extends OrderEntity {
       customerId: entity.customerId ,
       deliveryState: entity.deliveryState ,
       version: entity.version ,
+      finishCode: entity.finishCode
     );
   }
 

@@ -3,22 +3,19 @@ part of 'delivery_bloc.dart';
 
 abstract class DeliveryState extends Equatable {
   final OrderEntity? order;
-  final Position? currentLocation;
-  final List<LatLng>? polylineResult;
-  final List<mapTool.LatLng>? polylineResultForMapToolPlugin;
+  final Polylines? polylines;
+  const DeliveryState({this.order, this.polylines});
 
-  const DeliveryState({
-    this.order,
-    this.currentLocation,
-    this.polylineResult,
-    this.polylineResultForMapToolPlugin,
-  });
   @override
-  List<Object> get props => [order!];
+  List<Object?> get props => [order, polylines];
 }
 
 class DeliveryStateLoading extends DeliveryState {
   const DeliveryStateLoading();
+}
+
+class DeliveryStateOffLine extends DeliveryState {
+  const DeliveryStateOffLine();
 }
 
 class DeliveryStateSearchingCustomer extends DeliveryState {
@@ -26,19 +23,53 @@ class DeliveryStateSearchingCustomer extends DeliveryState {
 }
 
 class DeliveryStateFoundCustomer extends DeliveryState {
-  const DeliveryStateFoundCustomer(OrderEntity order) : super(order: order);
+  const DeliveryStateFoundCustomer(Polylines polylines, OrderEntity orderEntity)
+      : super(polylines: polylines, order: orderEntity);
+  @override
+  List<Object> get props => [order!, polylines!];
+}
+
+class DeliveryStateOrderAccepted extends DeliveryState {
+  const DeliveryStateOrderAccepted(OrderEntity order, Polylines polylines)
+      : super(order: order, polylines: polylines);
+}
+
+class DeliveryStateOrderPicked extends DeliveryState {
+  const DeliveryStateOrderPicked(
+    OrderEntity order, Polylines polylines
+  ) : super(order: order, polylines: polylines);
 }
 
 class DeliveryStateFinished extends DeliveryState {
-  const DeliveryStateFinished(OrderEntity customer) : super(order: customer);
+  const DeliveryStateFinished();
 }
 
 class DeliveryStateUpdateLocation extends DeliveryState {
-  const DeliveryStateUpdateLocation(Position currentLocation)
-      : super(currentLocation: currentLocation);
+  final Position currentLocation;
+  final bool isPolylineUpdated;
+  
+  const DeliveryStateUpdateLocation(
+    this.currentLocation, this.isPolylineUpdated,
+      {OrderEntity? order, Polylines? polylines})
+      : super(order: order, polylines: polylines);
+
+  @override
+  List<Object?> get props => [currentLocation, order];
+}
+
+class DeliveryStateMessage extends DeliveryState {
+  final String message;
+  const DeliveryStateMessage(this.message,
+      {OrderEntity? order, Polylines? polylines})
+      : super(order: order, polylines: polylines);
+  @override
+  List<Object?> get props => [message, order, polylines];
 }
 
 class DeliveryStatePolylineUpdated extends DeliveryState {
-  const DeliveryStatePolylineUpdated(List<LatLng> res, List<mapTool.LatLng>? polylineResultForMapToolPlugin)
-      : super(polylineResult: res, polylineResultForMapToolPlugin: polylineResultForMapToolPlugin);
+  final Position currentLocation;
+  const DeliveryStatePolylineUpdated(this.currentLocation, Polylines polylines)
+      : super(polylines: polylines);
+  @override
+  List<Object?> get props => [polylines];
 }

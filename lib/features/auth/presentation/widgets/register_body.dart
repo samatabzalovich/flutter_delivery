@@ -73,7 +73,7 @@ class _CustomFormState extends State<CustomForm> {
         email: _emailController.text,
         password: _passwordController.text,
         userName: _userNameController.text,
-        type: isRider ? UserType.rider : UserType.customer)));
+        type: isRider ? UserType.driver : UserType.customer)));
     // showDialog(
     //     context: context,
     //     builder: (context) {
@@ -128,7 +128,7 @@ class _CustomFormState extends State<CustomForm> {
                       isRider = val;
                     })),
             Text(
-              UserType.rider.name,
+              UserType.driver.name,
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 13,
