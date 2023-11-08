@@ -17,10 +17,18 @@ extension TypeFromString on UserType {
 }
 
 enum DeliveryState {
-  none,
+  searching,
   coming,
   picked,
   dropped;
+  // factory DeliveryState.getValueFromString(String value) {
+  //   for (DeliveryState element in DeliveryState.values) {
+  //     if (element.name == value) {
+  //       return element;
+  //     }
+  //   }
+  //   return DeliveryState.searching;
+  // }
 }
 
 extension EnumFromStringDeliveryState on DeliveryState {
@@ -30,6 +38,6 @@ extension EnumFromStringDeliveryState on DeliveryState {
         return element;
       }
     }
-    return DeliveryState.none;
+    return DeliveryState.searching;
   }
 }

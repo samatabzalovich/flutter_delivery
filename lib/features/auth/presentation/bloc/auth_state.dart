@@ -1,10 +1,8 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'package:dio/dio.dart';
 import 'package:equatable/equatable.dart';
 
 import 'package:flutter_delivery/core/error/state_exception.dart';
 import 'package:flutter_delivery/features/auth/domain/entity/user_entity.dart';
-import 'package:flutter_delivery/features/auth/domain/usecases/register.dart';
 
 abstract class AuthState extends Equatable {
   final UserEntity? user;

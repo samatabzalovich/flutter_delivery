@@ -8,7 +8,6 @@ import 'package:flutter_delivery/features/auth/presentation/bloc/auth_state.dart
 import 'package:flutter_delivery/features/auth/presentation/pages/auth_sign_in.dart';
 import 'package:flutter_delivery/features/auth/presentation/pages/auth_sign_up.dart';
 import 'package:flutter_delivery/features/auth/presentation/widgets/generic_dialog.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 Route<dynamic> onGenerateRoutes(RouteSettings settings) {
   switch (settings.name) {

@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_delivery/core/error/state_exception.dart';
 
 abstract class DataState<T> {

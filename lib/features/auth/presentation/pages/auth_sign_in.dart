@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_delivery/core/common/widgets/my_button.dart';
 import 'package:flutter_delivery/core/common/widgets/my_textfield.dart';
-import 'package:flutter_delivery/core/common/widgets/sqaure_tile.dart';
 import 'package:flutter_delivery/features/auth/domain/usecases/log_in.dart';
 import 'package:flutter_delivery/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flutter_delivery/features/auth/presentation/bloc/auth_event.dart';
