@@ -1,6 +1,7 @@
-import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_delivery/core/common/widgets/my_button.dart';
 import 'package:flutter_delivery/core/service/dependencies_injector.dart';
@@ -13,6 +14,7 @@ import 'package:flutter_delivery/features/driver_app/domain/usecase/get_polyline
 import 'package:flutter_delivery/features/driver_app/presentation/bloc/delivery_bloc.dart';
 import 'package:flutter_delivery/core/enum/user_enums.dart';
 import 'package:flutter_delivery/features/driver_app/presentation/widgets/generic_dialog.dart';
+import 'package:maps_toolkit/maps_toolkit.dart' as mapTool;
 
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -30,20 +32,28 @@ class _DeliveryBodyState extends State<DeliveryBody> {
   late Position _currentLocation;
   OrderState orderState = OrderState.none;
   late OrderEntity order;
-  GoogleMapController? mapController;
   Map<MarkerId, Marker> markers = {};
   Map<PolylineId, Polyline> polylines = {};
   late Polylines allPolyLinesForMapToolKit;
   bool isTiltEnabled = true;
   bool isScrollEnabled = true;
   bool isZoomEnabled = true;
-  late double _remainingDistanceToPolyLine;
-  late PolylineId _currentPolyLineId;
-
+  bool isLocationEnabled = true;
+  late Uint8List _customIcon;
   @override
-  void dispose() {
-    mapController!.dispose();
-    super.dispose();
+  void initState() {
+    getBytesFromAsset("./assets/car.png", 100);
+    super.initState();
+  }
+
+  Future<void> getBytesFromAsset(String path, int width) async {
+    ByteData data = await rootBundle.load(path);
+    ui.Codec codec = await ui.instantiateImageCodec(data.buffer.asUint8List(),
+        targetWidth: width);
+    ui.FrameInfo fi = await codec.getNextFrame();
+    _customIcon = (await fi.image.toByteData(format: ui.ImageByteFormat.png))!
+        .buffer
+        .asUint8List();
   }
 
   @override
@@ -52,72 +62,20 @@ class _DeliveryBodyState extends State<DeliveryBody> {
       listener: (ctx, state) async {
         if (state is DeliveryStateUpdateLocation) {
           _currentLocation = state.currentLocation;
-          if (mapController != null) {
-            mapController!.animateCamera(
-              CameraUpdate.newCameraPosition(
-                CameraPosition(
-                    target: LatLng(state.currentLocation.latitude,
-                        state.currentLocation.longitude),
-                    zoom: 17,
-                    tilt: state.order != null ? 45 : 0,
-                    bearing: state.currentLocation.heading),
-              ),
-            );
+          _initialcameraposition = LatLng(
+              state.currentLocation.latitude, state.currentLocation.longitude);
 
-            if (state.isPolylineUpdated != true && polylines.isNotEmpty) {
-              final String polyLineIDValue;
-              switch (order.deliveryState) {
-                case OrderState.coming:
-                  polyLineIDValue = "toOrigin";
-                  break;
-                case OrderState.searching:
-                  polyLineIDValue = "toOrigin";
-                  break;
-                case OrderState.picked:
-                  polyLineIDValue = "toDest";
-                  break;
-                default:
-                  polyLineIDValue = "toOrigin";
-                  break;
-              }
-              _currentPolyLineId = polylines.keys
-                  .firstWhere((pol) => pol.value == polyLineIDValue);
-              List<LatLng> polyline = polylines[_currentPolyLineId]!.points;
-              // TODO: implement the logic of polylie updating while user moving towards the pol point _remainingDistance
-              double distance = sl<LocationService>().calculateDistance(
-                polyline.first.latitude,
-                polyline.first.longitude,
-                state.currentLocation.latitude,
-                state.currentLocation.longitude,
-              );
-              _remainingDistanceToPolyLine -= distance;
-              if (_remainingDistanceToPolyLine <= 5) {
-                polyline.removeAt(1);
-                _remainingDistanceToPolyLine =
-                    sl<LocationService>().calculateDistance(
-                  state.currentLocation.latitude,
-                  state.currentLocation.longitude,
-                  polyline.first.latitude,
-                  polyline.first.longitude,
-                );
-              } else {
-                polyline.first = LatLng(state.currentLocation.latitude,
-                    state.currentLocation.longitude);
-              }
-
-              // Todo : until here
-              setState(() {
-                polylines[_currentPolyLineId] = polylines[_currentPolyLineId]!
-                    .copyWith(pointsParam: polyline);
-              });
-            }
-          } else {
-            _initialcameraposition = LatLng(state.currentLocation.latitude,
-                state.currentLocation.longitude);
-          }
           if (state.isPolylineUpdated) {
             setState(() {
               _setPolyLines(state);
+              _setCurrentLocationForNewPolyline(state);
+            });
+          }
+          if (state.order != null && state.isPolylineUpdated == false) {
+            // PolylineId id =  getCurrentPolylineId(state.order!);
+            setState(() {
+              _setPolyLines(state);
+              updateCurrentLocationMarker(state.polyline!);
             });
           }
         } else if (state is DeliveryStateSearchingCustomer) {
@@ -129,9 +87,10 @@ class _DeliveryBodyState extends State<DeliveryBody> {
             orderState = OrderState.none;
           });
         } else if (state is DeliveryStateFoundCustomer) {
+          isLocationEnabled = false;
           _setPolyLines(state);
-
           _setMarkers(state);
+          _setCurrentLocationMarker(state);
           order = state.order!;
           setState(() {
             orderState = order.deliveryState == OrderState.searching
@@ -175,13 +134,16 @@ class _DeliveryBodyState extends State<DeliveryBody> {
             GoogleMap(
               initialCameraPosition:
                   CameraPosition(target: _initialcameraposition, zoom: 15),
-              myLocationEnabled: true,
+              myLocationEnabled: isLocationEnabled,
               mapType: MapType.terrain,
               tiltGesturesEnabled: isTiltEnabled,
               compassEnabled: true,
               scrollGesturesEnabled: isScrollEnabled,
               zoomGesturesEnabled: isZoomEnabled,
-              onMapCreated: _onMapCreated,
+              onMapCreated: (e) {
+                BlocProvider.of<DeliveryBloc>(context).add(DeliveryInitMapEvent(
+                    e, context.read<AuthBloc>().state.user!.token!));
+              },
               markers: Set<Marker>.of(markers.values),
               polylines: Set<Polyline>.of(polylines.values),
               buildingsEnabled: true,
@@ -200,14 +162,9 @@ class _DeliveryBodyState extends State<DeliveryBody> {
     );
   }
 
-  void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
-    BlocProvider.of<DeliveryBloc>(context).add(
-        DeliveryInitSocketEvent(context.read<AuthBloc>().state.user!.token!));
-  }
-
   void _setPolyLines(DeliveryState state) {
     polylines.clear();
+
     if (state.polylines!.fromCurrentToOrigin != null) {
       final Map<PolylineId, Polyline> toOrigin = sl<GoogleMapsHelper>()
           .getPolylineMap(state.polylines!.fromCurrentToOrigin!.polylineResult,
@@ -245,6 +202,76 @@ class _DeliveryBodyState extends State<DeliveryBody> {
     allPolyLinesForMapToolKit = state.polylines!;
   }
 
+  PolylineId getCurrentPolylineId(OrderEntity order) {
+    final String polyLineIDValue;
+    switch (order.deliveryState) {
+      case OrderState.coming:
+        polyLineIDValue = "toOrigin";
+        break;
+      case OrderState.searching:
+        polyLineIDValue = "toOrigin";
+        break;
+      case OrderState.picked:
+        polyLineIDValue = "toDest";
+        break;
+      default:
+        polyLineIDValue = "toOrigin";
+        break;
+    }
+    return polylines.keys.firstWhere((pol) => pol.value == polyLineIDValue);
+  }
+
+//   final Uint8List markerIcon = await getBytesFromAsset('assets/images/flutter.png', 100);
+// final Marker marker = Marker(icon: BitmapDescriptor.fromBytes(markerIcon));
+  void _setCurrentLocationMarker(DeliveryState state) {
+    PolylineId id = getCurrentPolylineId(state.order!);
+
+    LatLng currentLoc = polylines[id]!.points.first;
+
+    final Map<MarkerId, Marker> currentLocation =
+        sl<GoogleMapsHelper>().getMarkerMap(
+      currentLoc,
+      "currentLocation",
+      BitmapDescriptor.fromBytes(_customIcon),
+    );
+    markers = {...currentLocation, ...markers};
+  }
+
+  void _setCurrentLocationForNewPolyline(DeliveryState state) {
+    const MarkerId id = MarkerId("currentLocation");
+    Marker marker =
+        markers.values.toList().firstWhere((item) => item.markerId == id);
+    switch (state.order!.deliveryState) {
+      case OrderState.coming:
+        marker = marker.copyWith(
+            positionParam:
+                state.polylines!.fromCurrentToOrigin!.polylineResult.first);
+      case OrderState.searching:
+        marker = marker.copyWith(
+            positionParam:
+                state.polylines!.fromCurrentToOrigin!.polylineResult.first);
+      case OrderState.picked:
+        marker = marker.copyWith(
+            positionParam:
+                state.polylines!.fromOriginToDestination.polylineResult.first);
+      default:
+        marker = marker.copyWith(
+            positionParam:
+                state.polylines!.fromOriginToDestination!.polylineResult.first);
+    }
+
+    //the marker is identified by the markerId and not with the index of the list
+    markers[id] = marker;
+  }
+
+  updateCurrentLocationMarker(List<LatLng> lng) {
+    const MarkerId id = MarkerId("currentLocation");
+    final marker =
+        markers.values.toList().firstWhere((item) => item.markerId == id);
+    //the marker is identified by the markerId and not with the index of the list
+    markers[id] = marker.copyWith(positionParam: lng.first, rotationParam: mapTool.SphericalUtil.computeAngleBetween(mapTool.LatLng(lng.first.latitude, lng.first.longitude), mapTool.LatLng(lng[1].latitude, lng[1].longitude)).toDouble());
+  }
+
   void _setMarkers(DeliveryState state) {
     final Map<MarkerId, Marker> origin = sl<GoogleMapsHelper>().getMarkerMap(
       LatLng(state.order!.origin.latitude, state.order!.origin.longitude),
@@ -259,12 +286,6 @@ class _DeliveryBodyState extends State<DeliveryBody> {
       BitmapDescriptor.defaultMarkerWithHue(90),
     );
     markers = {...origin, ...destination};
-    List<Marker> markerArr =
-        markers.entries.map((entry) => entry.value).toList();
-    mapController!.animateCamera(
-      CameraUpdate.newLatLngBounds(
-          sl<GoogleMapsHelper>().getBounds(markerArr), 100),
-    );
   }
 
   Widget _buttonBuilder(BuildContext context, OrderState orderState) {
@@ -306,6 +327,7 @@ class _DeliveryBodyState extends State<DeliveryBody> {
         text: "Complete",
         onTap: () {
           order = order.copyWith(deliveryState: OrderState.dropped);
+          isLocationEnabled = true;
           BlocProvider.of<DeliveryBloc>(context).add(
             DeliveryDropEvent(_currentLocation, order.finishCode!),
           );

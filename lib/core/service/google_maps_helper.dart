@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -17,20 +17,25 @@ class GoogleMapsHelper {
   }
 
   LatLngBounds getBounds(List<Marker> markers) {
-    var lngs = markers.map<double>((m) => m.position.longitude).toList();
-    var lats = markers.map<double>((m) => m.position.latitude).toList();
+    double minLat = markers[0].position.latitude;
+    double maxLat = markers[0].position.latitude;
+    double minLng = markers[0].position.longitude;
+    double maxLng = markers[0].position.longitude;
 
-    double topMost = lngs.reduce(max);
-    double leftMost = lats.reduce(min);
-    double rightMost = lats.reduce(max);
-    double bottomMost = lngs.reduce(min);
+    for (final marker in markers) {
+      final lat = marker.position.latitude;
+      final lng = marker.position.longitude;
 
-    LatLngBounds bounds = LatLngBounds(
-      northeast: LatLng(rightMost, topMost),
-      southwest: LatLng(leftMost, bottomMost),
+      minLat = math.min(minLat, lat);
+      maxLat = math.max(maxLat, lat);
+      minLng = math.min(minLng, lng);
+      maxLng = math.max(maxLng, lng);
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
     );
-
-    return bounds;
   }
 
   Map<MarkerId, Marker> getMarkerMap(LatLng position, String key, BitmapDescriptor descriptor) {

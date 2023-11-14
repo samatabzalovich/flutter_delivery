@@ -22,7 +22,7 @@ Future<void> initializeDependencies() async {
     ..registerLazySingleton<DriverRepository>(() => DriverRepositoryImpl(sl(), sl(), sl(), sl()))
     //Bloc
     ..registerFactory(() => AuthBloc(sl(), sl(), sl(), sl(), sl(), sl()))
-    ..registerFactory(() => DeliveryBloc(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()))
+    ..registerFactory(() => DeliveryBloc(sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl(), sl()))
     //common use cases
     ..registerLazySingleton(() => OffLineUseCase(sl()))
         ..registerLazySingleton(() => ServerMessageUseCase(sl()))

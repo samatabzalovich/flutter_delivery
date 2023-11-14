@@ -1,14 +1,18 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 
+import 'dart:math';
+
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_delivery/core/constants/constants.dart';
-import 'package:flutter_delivery/core/error/state_exception.dart';
-import 'package:flutter_delivery/core/resources/data_state.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:flutter_delivery/core/constants/constants.dart';
 import 'package:flutter_delivery/core/enum/user_enums.dart' as en;
+import 'package:flutter_delivery/core/error/state_exception.dart';
+import 'package:flutter_delivery/core/resources/data_state.dart';
+import 'package:flutter_delivery/core/service/google_maps_helper.dart';
 import 'package:flutter_delivery/core/service/location.dart';
 import 'package:flutter_delivery/features/driver_app/domain/entities/order_entity.dart';
 import 'package:flutter_delivery/features/driver_app/domain/repository/driver_repository.dart';
@@ -25,7 +29,6 @@ import 'package:flutter_delivery/features/driver_app/domain/usecase/pick_order.d
 import 'package:flutter_delivery/features/driver_app/domain/usecase/send_location.dart';
 import 'package:flutter_delivery/features/driver_app/domain/usecase/server_message.dart';
 import 'package:flutter_delivery/features/driver_app/domain/usecase/stream_order.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 // ignore: library_prefixes
 import 'package:maps_toolkit/maps_toolkit.dart' as mapTool;
 
@@ -47,6 +50,8 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
   final DisconnectUsecase _disconnectUsecase;
   final CloseErrorStreamUseCase _closeErrorStreamUseCase;
   final CloseSocketStreamUseCase _closeSocketStreamUseCase;
+  final GoogleMapsHelper _googleMapsHelper;
+  GoogleMapController? _mapController;
   DeliveryBloc(
     this._initializeUseCase,
     this._onLineUseCase,
@@ -62,8 +67,10 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
     this._disconnectUsecase,
     this._closeErrorStreamUseCase,
     this._closeSocketStreamUseCase,
+    this._googleMapsHelper,
   ) : super(const DeliveryStateLoading()) {
     on<DeliveryInitEvent>(initialize);
+    on<DeliveryInitMapEvent>(initMap);
     on<DeliveryInitSocketEvent>(initializeSocket);
     on<DeliveryFindCustomerEvent>(online);
     on<DeliveryOffLineEvent>(offline);
@@ -80,6 +87,11 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
       DeliveryMessageEvent event, Emitter<DeliveryState> emit) async {
     emit(DeliveryStateMessage(event.message,
         order: state.order, polylines: state.polylines));
+  }
+
+  void initMap(DeliveryInitMapEvent event, Emitter<DeliveryState> emit) {
+    _mapController = event.mapController;
+    add(DeliveryInitSocketEvent(event.token));
   }
 
   Future<DataState<Polylines>> getPolyLines(DeliveryEvent event) async {
@@ -257,13 +269,13 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
 
   void onOrderExist(
       DeliveryOrderExistsEvent event, Emitter<DeliveryState> emit) async {
-    //Todo: DeliveryOrderExistsEvent
     final dataState = await getPolyLines(event);
     if (dataState is DataSuccess) {
       emit(DeliveryStateFoundCustomer(
         dataState.data!,
         event.order!,
       ));
+      showMarkersOnMap(event.order!, dataState.data!);
     }
     if (dataState is DataFailed) {
       emit(DeliveryStateMessage(
@@ -292,7 +304,9 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
         dataState.data!,
         event.order!,
       ));
+      showMarkersOnMap(event.order!, dataState.data!);
     }
+
     if (dataState is DataFailed) {
       emit(DeliveryStateMessage(
         dataState.error!.message,
@@ -324,39 +338,44 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
   void onReceivedLocation(
       DeliveryReceivedLocationEvent event, Emitter<DeliveryState> emit) async {
     if (state.order != null) {
-      en.OrderState orderState = state.order!.deliveryState;
-      final List<mapTool.LatLng> checkingPolyline;
-      switch (orderState) {
-        case en.OrderState.coming:
-          checkingPolyline = state
-              .polylines!.fromCurrentToOrigin!.polylineResultForMapToolPlugin;
-          break;
-        case en.OrderState.searching:
-          checkingPolyline = state
-              .polylines!.fromCurrentToOrigin!.polylineResultForMapToolPlugin;
-          break;
-        case en.OrderState.picked:
-          checkingPolyline = state.polylines!.fromOriginToDestination
-              .polylineResultForMapToolPlugin;
-          break;
-        default:
-          checkingPolyline = state.polylines!.fromOriginToDestination
-              .polylineResultForMapToolPlugin;
-      }
+      PolylineUseCaseResult checkingPolyline = getCurrentPoyline();
       // mapTool.SphericalUtil.computeArea(from, to, fraction)
-      bool isOnEdge = mapTool.PolygonUtil.isLocationOnPath(
-        mapTool.LatLng(
-            event.currentPosition.latitude, event.currentPosition.longitude),
-        checkingPolyline,
-        true,
-        tolerance: 10,
-      );
+      bool isOnEdge = false;
+      late mapTool.LatLng snappedToSegment;
+      for (int i = 0;
+          i < checkingPolyline.polylineResultForMapToolPlugin.length - 1;
+          i++) {
+        mapTool.LatLng segmentP1 =
+            checkingPolyline.polylineResultForMapToolPlugin[i];
+        mapTool.LatLng segmentP2 =
+            checkingPolyline.polylineResultForMapToolPlugin[i + 1];
+        List<mapTool.LatLng> segment = [];
+        segment.add(segmentP1);
+        segment.add(segmentP2);
+        if (mapTool.PolygonUtil.isLocationOnPath(
+            mapTool.LatLng(
+              event.currentPosition.latitude,
+              event.currentPosition.longitude,
+            ),
+            segment,
+            true,
+            tolerance: 5)) {
+          snappedToSegment =
+              await _locationService.getMarkerProjectionOnSegment(
+                  mapTool.LatLng(event.currentPosition.latitude,
+                      event.currentPosition.longitude),
+                  segment,
+                  _mapController!);
+          isOnEdge = true;
+          break;
+        }
+      }
+
       if (!isOnEdge) {
         final dataState = await getPolyLines(
           DeliveryGetPolylineEvent(state.order!),
         );
         if (dataState is DataSuccess) {
-          // Todo: send polylines also
           if (state.order!.deliveryId != null) {
             await _sendLocationUseCase.call(
               params: DeliveryUseCaseParams(
@@ -387,6 +406,57 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
           }
         }
       } else {
+        int indexOfSegment = 0;
+        for (int i = 0;
+            i < checkingPolyline.polylineResultForMapToolPlugin.length - 1;
+            i++) {
+          mapTool.LatLng segmentP1 =
+              checkingPolyline.polylineResultForMapToolPlugin[i];
+          mapTool.LatLng segmentP2 =
+              checkingPolyline.polylineResultForMapToolPlugin[i + 1];
+          List<mapTool.LatLng> segment = [];
+          segment.add(segmentP1);
+          segment.add(segmentP2);
+          if (mapTool.PolygonUtil.isLocationOnPath(
+              mapTool.LatLng(
+                snappedToSegment.latitude,
+                snappedToSegment.longitude,
+              ),
+              segment,
+              true,
+              tolerance: 2.5)) {
+            indexOfSegment = i;
+            break;
+          }
+        }
+        if (indexOfSegment != 0) {
+          checkingPolyline.polylineResult.removeAt(1);
+          checkingPolyline.polylineResultForMapToolPlugin.removeAt(1);
+        } else {
+          checkingPolyline.polylineResult.first =
+              LatLng(snappedToSegment.latitude, snappedToSegment.longitude);
+          checkingPolyline.polylineResultForMapToolPlugin.first =
+              snappedToSegment;
+        }
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+                target: LatLng(
+                  checkingPolyline.polylineResult.first.latitude,
+                  checkingPolyline.polylineResult.first.longitude,
+                ),
+                zoom: 17,
+                tilt: 45,
+                bearing: _locationService.bearingBetween(
+                    snappedToSegment.latitude,
+                    snappedToSegment.longitude,
+                    checkingPolyline.polylineResult[1].latitude,
+                    checkingPolyline.polylineResult[1].longitude)),
+          ),
+        );
+        final Polylines changedPolylines = getChangedCurrentPolyline(
+            checkingPolyline.polylineResult,
+            checkingPolyline.polylineResultForMapToolPlugin);
         if (state.order!.deliveryId != null) {
           await _sendLocationUseCase.call(
             params: DeliveryUseCaseParams(
@@ -394,23 +464,34 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
               to: state.order!.customerId.toString(),
               orderID: state.order!.id!.toString(),
               location: LocationEntity(
-                latitude: event.currentPosition.latitude,
-                longitude: event.currentPosition.longitude,
+                latitude: checkingPolyline.polylineResult.first.latitude,
+                longitude: checkingPolyline.polylineResult.first.longitude,
               ),
+              polylines: changedPolylines,
+              isPolylineUpdated: false,
             ),
           );
         }
-
         emit(
-          DeliveryStateUpdateLocation(
-            event.currentPosition,
-            false,
-            order: state.order,
-            polylines: state.polylines,
-          ),
+          DeliveryStateUpdateLocation(event.currentPosition, false,
+              order: state.order,
+              polylines: changedPolylines,
+              polyline: checkingPolyline.polylineResult),
         );
       }
     } else {
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newCameraPosition(
+            CameraPosition(
+                target: LatLng(event.currentPosition.latitude,
+                    event.currentPosition.longitude),
+                zoom: 17,
+                tilt: 0,
+                bearing: event.currentPosition.heading),
+          ),
+        );
+      }
       emit(DeliveryStateUpdateLocation(event.currentPosition, false));
     }
   }
@@ -458,6 +539,74 @@ class DeliveryBloc extends Bloc<DeliveryEvent, DeliveryState> {
     _closeErrorStreamUseCase.call();
     _closeSocketStreamUseCase.call();
   }
+
+  PolylineUseCaseResult getCurrentPoyline() {
+    en.OrderState orderState = state.order!.deliveryState;
+    final PolylineUseCaseResult checkingPolyline;
+
+    switch (orderState) {
+      case en.OrderState.coming:
+        checkingPolyline = state.polylines!.fromCurrentToOrigin!;
+        break;
+      case en.OrderState.searching:
+        checkingPolyline = state.polylines!.fromCurrentToOrigin!;
+        break;
+      case en.OrderState.picked:
+        checkingPolyline = state.polylines!.fromOriginToDestination;
+        break;
+      default:
+        checkingPolyline = state.polylines!.fromOriginToDestination;
+    }
+    return checkingPolyline;
+  }
+
+  void showMarkersOnMap(OrderEntity orderEntity, Polylines polylines) {
+    late Marker current;
+    if (polylines.fromCurrentToOrigin != null) {
+      current = Marker(
+          markerId: const MarkerId("current"),
+          position: polylines.fromCurrentToOrigin!.polylineResult.first);
+    } else {
+      current = Marker(
+          markerId: const MarkerId("current"),
+          position: polylines.fromOriginToDestination.polylineResult.last);
+    }
+    Marker origin = Marker(
+        markerId: const MarkerId("origin"),
+        position:
+            LatLng(orderEntity.origin.latitude, orderEntity.origin.longitude));
+    Marker destination = Marker(
+        markerId: const MarkerId("destination"),
+        position: LatLng(orderEntity.destination.latitude,
+            orderEntity.destination.longitude));
+    List<Marker> markers = [];
+    markers.addAll([current,origin, destination]);
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(_googleMapsHelper.getBounds(markers), 100),
+    );
+  }
+
+  Polylines getChangedCurrentPolyline(List<LatLng> polyLines,
+      List<mapTool.LatLng> polylineResultForMapToolPlugin) {
+    en.OrderState orderState = state.order!.deliveryState;
+
+    switch (orderState) {
+      case en.OrderState.coming:
+        return state.polylines!.copyWith(
+            fromCurrentToOrigin: PolylineUseCaseResult(
+                polyLines, polylineResultForMapToolPlugin));
+      case en.OrderState.searching:
+        return state.polylines!.copyWith(
+            fromCurrentToOrigin: PolylineUseCaseResult(
+                polyLines, polylineResultForMapToolPlugin));
+      case en.OrderState.picked:
+        return state.polylines!.copyWith(
+            fromOriginToDestination: PolylineUseCaseResult(
+                polyLines, polylineResultForMapToolPlugin));
+      default:
+        return state.polylines!.copyWith(
+            fromOriginToDestination: PolylineUseCaseResult(
+                polyLines, polylineResultForMapToolPlugin));
+    }
+  }
 }
-
-

@@ -4,10 +4,15 @@ part of 'delivery_bloc.dart';
 abstract class DeliveryState extends Equatable {
   final OrderEntity? order;
   final Polylines? polylines;
-  const DeliveryState({this.order, this.polylines});
+  final List<LatLng>? polyline;
+  const DeliveryState({
+    this.order,
+    this.polylines,
+    this.polyline,
+  });
 
   @override
-  List<Object?> get props => [order, polylines];
+  List<Object?> get props => [order, polylines, polyline];
 }
 
 class DeliveryStateLoading extends DeliveryState {
@@ -24,7 +29,7 @@ class DeliveryStateSearchingCustomer extends DeliveryState {
 
 class DeliveryStateFoundCustomer extends DeliveryState {
   const DeliveryStateFoundCustomer(Polylines polylines, OrderEntity orderEntity)
-      : super(polylines: polylines, order: orderEntity);
+      : super(polylines: polylines, order: orderEntity,);
   @override
   List<Object> get props => [order!, polylines!];
 }
@@ -35,9 +40,8 @@ class DeliveryStateOrderAccepted extends DeliveryState {
 }
 
 class DeliveryStateOrderPicked extends DeliveryState {
-  const DeliveryStateOrderPicked(
-    OrderEntity order, Polylines polylines
-  ) : super(order: order, polylines: polylines);
+  const DeliveryStateOrderPicked(OrderEntity order, Polylines polylines)
+      : super(order: order, polylines: polylines);
 }
 
 class DeliveryStateFinished extends DeliveryState {
@@ -47,11 +51,11 @@ class DeliveryStateFinished extends DeliveryState {
 class DeliveryStateUpdateLocation extends DeliveryState {
   final Position currentLocation;
   final bool isPolylineUpdated;
-  
+
   const DeliveryStateUpdateLocation(
-    this.currentLocation, this.isPolylineUpdated,
-      {OrderEntity? order, Polylines? polylines})
-      : super(order: order, polylines: polylines);
+      this.currentLocation, this.isPolylineUpdated,
+      {OrderEntity? order, Polylines? polylines, List<LatLng>? polyline})
+      : super(order: order, polylines: polylines, polyline: polyline);
 
   @override
   List<Object?> get props => [currentLocation, order];

@@ -121,4 +121,18 @@ class Polylines extends Equatable {
       'fromOriginToDestination': fromOriginToDestination.toMap(),
     };
   }
+
+  Polylines copyWith({
+    PolylineUseCaseResult? fromCurrentToOrigin,
+    PolylineUseCaseResult? walkingPolylinefromCurrentToOrigin,
+    PolylineUseCaseResult? walkingPolylinefromOriginToDest,
+    PolylineUseCaseResult? fromOriginToDestination,
+  }) {
+    return Polylines(
+      fromCurrentToOrigin: fromCurrentToOrigin ?? this.fromCurrentToOrigin,
+      walkingPolylinefromCurrentToOrigin: walkingPolylinefromCurrentToOrigin ?? this.walkingPolylinefromCurrentToOrigin,
+      walkingPolylinefromOriginToDest: walkingPolylinefromOriginToDest ?? this.walkingPolylinefromOriginToDest,
+      fromOriginToDestination: fromOriginToDestination ?? this.fromOriginToDestination,
+    );
+  }
 }

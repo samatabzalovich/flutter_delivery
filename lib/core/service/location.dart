@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_delivery/core/error/state_exception.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:maps_toolkit/maps_toolkit.dart' as mapTool;
 
 class LocationService {
@@ -16,9 +18,10 @@ class LocationService {
       double endLatitude, double endLongitude) {
     // return Geolocator.bearingBetween(startLatitude, startLongitude, endLatitude, endLongitude);
 
-    return mapTool.SphericalUtil.computeAngleBetween(
-        mapTool.LatLng(startLatitude, startLongitude),
-        mapTool.LatLng(endLatitude, endLongitude)).toDouble();
+    return mapTool.SphericalUtil.computeHeading(
+            mapTool.LatLng(startLatitude, startLongitude),
+            mapTool.LatLng(endLatitude, endLongitude))
+        .toDouble();
   }
 
   bool isMovingTowardsTarget(Position userLocation, bearingToTarget) {
@@ -28,6 +31,43 @@ class LocationService {
     // If the bearing difference is within a certain threshold, the user is moving towards the target.
     // You can adjust the threshold as needed.
     return bearingDiff <= 90.0;
+  }
+
+  Future<mapTool.LatLng> getMarkerProjectionOnSegment(mapTool.LatLng carPos,
+      List<mapTool.LatLng> segment, GoogleMapController mapController) async {
+    ScreenCoordinate a = await mapController
+        .getScreenCoordinate(LatLng(segment[0].latitude, segment[0].longitude));
+    ScreenCoordinate b = await mapController
+        .getScreenCoordinate(LatLng(segment[1].latitude, segment[1].longitude));
+    ScreenCoordinate p = await mapController
+        .getScreenCoordinate(LatLng(carPos.latitude, carPos.longitude));
+
+    if (a == b)
+      return segment[0]; // Projected points are the same, segment is very short
+    if (p == a || p == b) return carPos;
+
+    /*
+        If you're interested in the math (d represents point on segment you are trying to find):
+        
+        angle between 2 vectors = inverse cos of (dotproduct of 2 vectors / product of the magnitudes of each vector)
+        angle = arccos(ab.ap/|ab|*|ap|)
+        ad magnitude = magnitude of vector ap multiplied by cos of (angle).
+        ad = ap*cos(angle) --> basic trig adj = hyp * cos(opp)
+        below implementation is just a simplification of these equations
+         */
+
+    double dotproduct = ((b.x.toDouble() - a.x.toDouble()) *
+            (p.x.toDouble() - a.x.toDouble())) +
+        ((b.y.toDouble() - a.y.toDouble()) * (p.y.toDouble() - a.y.toDouble()));
+    double absquared = (pow(a.x - b.x, 2) + pow(a.y - b.y, 2))
+        .toDouble(); // Segment magnitude squared
+
+    // Get the fraction for SphericalUtil.interpolate
+    double fraction = dotproduct / absquared;
+
+    if (fraction > 1) return segment[1];
+    if (fraction < 0) return segment[0];
+    return mapTool.SphericalUtil.interpolate(segment[0], segment[1], fraction);
   }
 
   Future<Stream<Position>> getPositionStream() async {
@@ -68,7 +108,7 @@ class LocationService {
           accuracy: LocationAccuracy.high,
           distanceFilter: 5,
           forceLocationManager: true,
-          intervalDuration: const Duration(seconds: 3),
+          intervalDuration: const Duration(seconds: 1),
           //(Optional) Set foreground notification config to keep the app alive
           //when going to the background
           foregroundNotificationConfig: const ForegroundNotificationConfig(
