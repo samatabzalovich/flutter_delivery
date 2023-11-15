@@ -75,16 +75,17 @@
 - press the button online to start searching nearest order
 - when order is found you see the directions to pick up and drop off points, press the green button Start
 - and the button gets orange with the text Pick Up
-![pickuppoints](readme_screens/points.png?raw=true)
+<img src="readme_screens/points.png" height="480" />
 - each time you move, customer receives your location in real time.
-![delLoc](readme_screens/delLoc.png?raw=true)
+<img src="readme_screens/delLoc.png" />
 - getting closer
-  ![delLoc](readme_screens/closertopoint.png?raw=true)
+<img src="readme_screens/closertopoint.png" height="480" />
 - after you picked the order second polyline (first green polyline is the destination where you pick up the order, second red polyline is the destination where you need to deliver the order) is only shown.
-![pickUp](readme_screens/pickedUp.png?raw=true)
+<img src="readme_screens/pickedUp.png" height="480" />
 - Complete order
-![complete](readme_screens/compl.png?raw=true)
-![completed](readme_screens/success.png?raw=true)
+<img src="readme_screens/compl.png" height="480" />
+<img src="readme_screens/success.png" height="480" />
+
 
 
 
