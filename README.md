@@ -41,8 +41,9 @@
 
 
 ## Screenshots 
--here postman is presented as a user 
-- first you need to sign in 
+- here postman is presented as a customer 
+- first you need to sign in as a customer , (customer sign in is not implemented I will implement that soon)
+  ![sign in postman](https://github.com/samatabzalovich/flutter_delivery/blob/main/readme_screens/Screenshot 2023-11-10 at 12.51.29 AM.png?raw=true)
 - set header for the token in socket io tester
 - send order-event to find delivery person
 - sample order json
