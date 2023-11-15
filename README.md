@@ -71,7 +71,7 @@
 - delivery app
 - first you need to sign in as a Delivery person
 - after signing in you are directed to maps
-![delApp](readme_screens/delApp.png?raw=true)
+<img src="readme_screens/delApp.png" height="200" />
 - press the button online to start searching nearest order
 - when order is found you see the directions to pick up and drop off points, press the green button Start
 - and the button gets orange with the text Pick Up
