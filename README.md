@@ -45,7 +45,9 @@
 - first you need to sign in as a customer , (customer sign in is not implemented I will implement that soon)
   ![sign in postman](readme_screens/signinpostman.png?raw=true)
 - set header for the token in socket io tester
+  ![set header](readme_screens/setHeaderPostman.png?raw=true)
 - send order-event to find delivery person
+  ![sendOrderEvent](readme_screens/sendOrder.png?raw=true)
 - sample order json
   <code>
   {
@@ -65,11 +67,25 @@
 }
   </code>
 
--delivery app
--press the button online 
--press the green button Start
--when you started the order, each time you move, customer receives your location in real time.
--after you picked the order second polyline (first green polyline is the destination where you pick up the order, second red polyline is the destination where you need to deliver the order) is only shown.
+
+- delivery app
+- first you need to sign in as a Delivery person
+- after signing in you are directed to maps
+![delApp](readme_screens/delApp.png?raw=true)
+- press the button online to start searching nearest order
+- when order is found you see the directions to pick up and drop off points, press the green button Start
+- and the button gets orange with the text Pick Up
+![pickuppoints](readme_screens/points.png?raw=true)
+- each time you move, customer receives your location in real time.
+![delLoc](readme_screens/delLoc.png?raw=true)
+- getting closer
+  ![delLoc](readme_screens/closertopoint.png?raw=true)
+- after you picked the order second polyline (first green polyline is the destination where you pick up the order, second red polyline is the destination where you need to deliver the order) is only shown.
+![pickUp](readme_screens/pickedUp.png?raw=true)
+- Complete order
+![complete](readme_screens/compl.png?raw=true)
+![completed](readme_screens/success.png?raw=true)
+
 
 
 ## For contact
